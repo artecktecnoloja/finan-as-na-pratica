@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>FinançaClara — Dashboard Inteligente</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet"/>
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        :root {
+            --bg:#0a0c10; --surface:#13161d; --surface2:#1c2030; --border:#ffffff0f;
+            --text:#f0f2f8; --muted:#6b7490; --accent:#00e5a0; --accent2:#ff6b6b;
+            --accent3:#ffc043; --accent4:#5b8cff; --radius:14px;
+        }
+        body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+
+        /* Layout */
+        .shell { display: flex; }
+        .sidebar { 
+            width: 220px; background: var(--surface); border-right: 1px solid var(--border); 
+            display: flex; flex-direction: column; padding: 24px 16px; position: fixed; height: 100vh; 
+        }
+        .main { margin-left: 220px; flex: 1; padding: 32px 28px; max-width: 1180px; }
+
+        .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.25rem; color: var(--accent); margin-bottom: 30px; padding-left: 10px; }
+        .nav-item { 
+            display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 10px; 
+            cursor: pointer; color: var(--muted); margin-bottom: 5px; transition: 0.2s; 
+        }
+        .nav-item.active { background: #00e5a015; color: var(--accent); border: 1px solid #00e5a030; }
+
+        /* Header & Selectors */
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px; }
+        .month-selector { background: var(--surface2); color: var(--text); border: 1px solid var(--border); padding: 10px 15px; border-radius: 10px; font-family: 'Syne'; font-weight: 700; cursor: pointer; }
+
+        /* Cards */
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 28px; }
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; transition: 0.3s; position: relative; }
+        .card-label { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+        .card-value { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 700; }
+        
+        /* Form & Inputs */
+        .section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; margin-bottom: 20px; }
+        .input-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+        .input-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 150px; }
+        .input { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; color: var(--text); font-family: inherit; }
+        .btn { padding: 12px 20px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; font-family: 'Syne'; }
+        .btn-primary { background: var(--accent); color: #000; }
+        .btn-sm { padding: 8px 12px; font-size: 0.8rem; }
+
+        /* Lists & Tables */
+        .item-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border); }
+        .item-info b { display: block; font-size: 0.95rem; }
+        .item-info span { font-size: 0.75rem; color: var(--muted); }
+        .action-btn { background: none; border: none; color: var(--danger); cursor: pointer; padding: 5px; margin-left: 10px; font-size: 1rem; }
+
+        /* Progress Bar */
+        .progress-bg { background: var(--surface2); height: 8px; border-radius: 10px; margin-top: 15px; overflow: hidden; }
+        .progress-fill { background: var(--accent4); height: 100%; transition: width 0.4s ease; }
+
+        .page { display: none; animation: fade 0.4s ease; }
+        .page.active { display: block; }
+        @keyframes fade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 720px) {
+            .sidebar { width: 65px; padding: 20px 10px; }
+            .logo, .nav-item span:last-child { display: none; }
+            .main { margin-left: 65px; padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="shell">
+    <aside class="sidebar">
+        <div class="logo">Finança<span>Clara</span></div>
+        <nav>
+            <div class="nav-item active" onclick="go('dash')" id="nav-dash">🏠 <span>Dashboard</span></div>
+            <div class="nav-item" onclick="go('invest')" id="nav-invest">📈 <span>Investimentos</span></div>
+            <div class="nav-item" onclick="go('metas')" id="nav-metas">🎯 <span>Metas</span></div>
+            <div class="nav-item" onclick="go('add')" id="nav-add">➕ <span>Lançar</span></div>
+        </nav>
+    </aside>
+
+    <main class="main">
+        <div id="dash" class="page active">
+            <div class="page-header">
+                <h1 style="font-family:'Syne'">Olá, Lucas 👋</h1>
+                <input type="month" id="dash-month" class="month-selector" onchange="render()">
+            </div>
+            
+            <div class="cards-grid">
+                <div class="card">
+                    <div class="card-label">Saldo Total Conta</div>
+                    <div class="card-value" id="res-balance" style="color:var(--accent)">R$ 0,00</div>
+                </div>
+                <div class="card">
+                    <div class="card-label">Entradas (Mês)</div>
+                    <div class="card-value" id="res-incomes" style="color:var(--accent4)">R$ 0,00</div>
+                </div>
+                <div class="card">
+                    <div class="card-label">Saídas (Mês)</div>
+                    <div class="card-value" id="res-expenses" style="color:var(--accent2)">R$ 0,00</div>
+                </div>
+                <div class="card" style="border-bottom: 4px solid var(--accent3)">
+                    <div class="card-label">Patrimônio Investido</div>
+                    <div class="card-value" id="res-invested" style="color:var(--accent3)">R$ 0,00</div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3 style="font-family:'Syne'; margin-bottom:15px">Transações do Mês</h3>
+                <div id="recent-list"></div>
+            </div>
+        </div>
+
+        <div id="invest" class="page">
+            <h1 style="font-family:'Syne'; margin-bottom:25px">Meus Investimentos</h1>
+            <div class="section">
+                <div class="input-row">
+                    <div class="input-group">
+                        <label class="input-label">Ativo (Ex: FIIs, Tesouro)</label>
+                        <input class="input" id="inv-name" placeholder="Nome do ativo">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">Saldo Atual (R$)</label>
+                        <input class="input" id="inv-balance" type="number" step="0.01" placeholder="0,00">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">Rendimento no Mês (R$)</label>
+                        <input class="input" id="inv-yield" type="number" step="0.01" placeholder="0,00">
+                    </div>
+                    <button class="btn btn-primary" onclick="addAsset()">Registrar</button>
+                </div>
+            </div>
+            
+            <div class="cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+                <div class="card" style="background: linear-gradient(135deg, var(--surface), var(--surface2)); border-left: 4px solid var(--accent3)">
+                    <div class="card-label">Total de Rendimentos (Mês)</div>
+                    <div class="card-value" id="res-yield" style="color:var(--accent)">R$ 0,00</div>
+                </div>
+            </div>
+
+            <div id="invest-list" class="section"></div>
+        </div>
+
+        <div id="metas" class="page">
+            <h1 style="font-family:'Syne'; margin-bottom:25px">🎯 Metas e Objetivos</h1>
+            <div class="section">
+                <div class="input-row">
+                    <div class="input-group">
+                        <label class="input-label">Objetivo</label>
+                        <input class="input" id="goal-name" placeholder="Ex: Viagem, Carro">
+                    </div>
+                    <div class="input-group">
+                        <label class="input-label">Valor Alvo (R$)</label>
+                        <input class="input" id="goal-val" type="number" placeholder="0,00">
+                    </div>
+                    <button class="btn btn-primary" onclick="addGoal()">Criar Meta</button>
+                </div>
+            </div>
+            <div id="goals-list" class="cards-grid"></div>
+        </div>
+
+        <div id="add" class="page">
+            <h1 style="font-family:'Syne'; margin-bottom:25px">Novo Lançamento</h1>
+            <div class="card" style="max-width: 500px">
+                <div class="input-group" style="margin-bottom:15px">
+                    <label>Data</label>
+                    <input class="input" type="date" id="tx-date">
+                </div>
+                <div class="input-group" style="margin-bottom:15px">
+                    <label>Descrição</label>
+                    <input class="input" id="tx-desc" placeholder="Ex: Mercado, Salário">
+                </div>
+                <div class="input-group" style="margin-bottom:15px">
+                    <label>Valor (R$)</label>
+                    <input class="input" id="tx-val" type="number" step="0.01" placeholder="0.00">
+                </div>
+                <div class="input-group" style="margin-bottom:20px">
+                    <label>Tipo</label>
+                    <select class="input" id="tx-type">
+                        <option value="income">Entrada (+)</option>
+                        <option value="expense">Saída (-)</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" style="width:100%" onclick="addTx()">Salvar Transação</button>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+// --- STATE MANAGEMENT ---
+// Mudança de chave para evitar conflito com dados da versão anterior
+let state = JSON.parse(localStorage.getItem('financa_pro_v2')) || {
+    transactions: [],
+    assets: [],
+    goals: []
+};
+
+// Setar data de hoje no seletor e no input de lançamento
+const today = new Date();
+const currentMonthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+document.getElementById('dash-month').value = currentMonthStr;
+document.getElementById('tx-date').value = today.toISOString().split('T')[0];
+
+function save() {
+    localStorage.setItem('financa_pro_v2', JSON.stringify(state));
+    render();
+}
+
+function go(pageId) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById(pageId).classList.add('active');
+    document.getElementById('nav-' + pageId).classList.add('active');
+}
+
+// --- LÓGICA DE TRANSAÇÕES ---
+function addTx() {
+    const date = document.getElementById('tx-date').value;
+    const desc = document.getElementById('tx-desc').value;
+    const val = parseFloat(document.getElementById('tx-val').value);
+    const type = document.getElementById('tx-type').value;
+
+    if(date && desc && val) {
+        state.transactions.unshift({ id: Date.now(), date, desc, val, type });
+        document.getElementById('tx-desc').value = '';
+        document.getElementById('tx-val').value = '';
+        save();
+        go('dash');
+    } else {
+        alert("Preencha todos os campos corretamente.");
+    }
+}
+
+// --- LÓGICA DE INVESTIMENTOS ---
+function addAsset() {
+    const name = document.getElementById('inv-name').value;
+    const balance = parseFloat(document.getElementById('inv-balance').value);
+    const yieldVal = parseFloat(document.getElementById('inv-yield').value) || 0; // se vazio, zero
+    
+    if(name && balance) {
+        state.assets.push({ id: Date.now(), name, balance, yield: yieldVal });
+        document.getElementById('inv-name').value = '';
+        document.getElementById('inv-balance').value = '';
+        document.getElementById('inv-yield').value = '';
+        save();
+    }
+}
+
+// --- LÓGICA DE METAS ---
+function addGoal() {
+    const name = document.getElementById('goal-name').value;
+    const val = parseFloat(document.getElementById('goal-val').value);
+    if(name && val) {
+        state.goals.push({ id: Date.now(), name, val, current: 0 });
+        document.getElementById('goal-name').value = '';
+        document.getElementById('goal-val').value = '';
+        save();
+    }
+}
+
+function sumToGoal(id) {
+    const input = document.getElementById(`goal-add-${id}`);
+    const val = parseFloat(input.value);
+    if(val && val > 0) {
+        const goal = state.goals.find(g => g.id === id);
+        goal.current += val;
+        save();
+    }
+}
+
+function deleteItem(category, id) {
+    state[category] = state[category].filter(i => i.id !== id);
+    save();
+}
+
+// --- FORMATADORES ---
+function formatCurrency(value) {
+    return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function formatDateBR(dateString) {
+    const [y, m, d] = dateString.split('-');
+    return `${d}/${m}/${y}`;
+}
+
+// --- RENDERIZAÇÃO PRINCIPAL ---
+function render() {
+    // 1. Filtrar transações pelo mês selecionado no Dashboard
+    const selectedMonth = document.getElementById('dash-month').value; // "YYYY-MM"
+    
+    const monthlyTxs = state.transactions.filter(t => t.date.startsWith(selectedMonth));
+    
+    // 2. Cálculos do Dashboard
+    const totalInc = state.transactions.filter(t => t.type === 'income').reduce((a,b) => a + b.val, 0);
+    const totalExp = state.transactions.filter(t => t.type === 'expense').reduce((a,b) => a + b.val, 0);
+    const globalBalance = totalInc - totalExp;
+
+    const monthInc = monthlyTxs.filter(t => t.type === 'income').reduce((a,b) => a + b.val, 0);
+    const monthExp = monthlyTxs.filter(t => t.type === 'expense').reduce((a,b) => a + b.val, 0);
+
+    const invTotal = state.assets.reduce((a,b) => a + b.balance, 0);
+    const yieldTotal = state.assets.reduce((a,b) => a + b.yield, 0);
+
+    // Atualizar UI Dashboard
+    document.getElementById('res-balance').innerText = `R$ ${formatCurrency(globalBalance)}`;
+    document.getElementById('res-incomes').innerText = `R$ ${formatCurrency(monthInc)}`;
+    document.getElementById('res-expenses').innerText = `R$ ${formatCurrency(monthExp)}`;
+    document.getElementById('res-invested').innerText = `R$ ${formatCurrency(invTotal)}`;
+
+    // Lista Transações (Filtradas pelo Mês)
+    document.getElementById('recent-list').innerHTML = monthlyTxs.length ? monthlyTxs.map(t => `
+        <div class="item-row">
+            <div class="item-info">
+                <b>${t.desc}</b>
+                <span>${formatDateBR(t.date)}</span>
+            </div>
+            <div style="font-weight:700; display:flex; align-items:center; color:${t.type === 'income' ? 'var(--accent)' : 'var(--accent2)'}">
+                ${t.type === 'income' ? '+' : '-'} R$ ${formatCurrency(t.val)}
+                <button class="action-btn" onclick="deleteItem('transactions', ${t.id})">✕</button>
+            </div>
+        </div>
+    `).join('') : '<p style="color:var(--muted)">Nenhuma movimentação neste mês.</p>';
+
+    // 3. Atualizar UI Investimentos
+    document.getElementById('res-yield').innerText = `+ R$ ${formatCurrency(yieldTotal)}`;
+    
+    document.getElementById('invest-list').innerHTML = state.assets.length ? state.assets.map(a => `
+        <div class="item-row">
+            <div class="item-info">
+                <b>${a.name}</b>
+                <span style="color:var(--accent)">Rendeu: R$ ${formatCurrency(a.yield)}</span>
+            </div>
+            <div style="font-weight:700; display:flex; align-items:center;">
+                R$ ${formatCurrency(a.balance)}
+                <button class="action-btn" onclick="deleteItem('assets', ${a.id})">✕</button>
+            </div>
+        </div>
+    `).join('') : '<p style="color:var(--muted)">Nenhum ativo registrado.</p>';
+
+    // 4. Atualizar UI Metas
+    document.getElementById('goals-list').innerHTML = state.goals.map(g => {
+        const perc = Math.min((g.current / g.val) * 100, 100).toFixed(1);
+        return `
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start">
+                <div>
+                    <div class="card-label">${g.name}</div>
+                    <div class="card-value" style="font-size:1.4rem">R$ ${formatCurrency(g.current)}</div>
+                </div>
+                <button class="action-btn" style="margin:0" onclick="deleteItem('goals', ${g.id})">✕</button>
+            </div>
+            
+            <div style="font-size:0.75rem; color:var(--muted); margin-top:5px; display:flex; justify-content:space-between">
+                <span>Alvo: R$ ${formatCurrency(g.val)}</span>
+                <span style="color:var(--accent4); font-weight:bold">${perc}%</span>
+            </div>
+            
+            <div class="progress-bg">
+                <div class="progress-fill" style="width:${perc}%"></div>
+            </div>
+            
+            <div style="display:flex; gap:8px; margin-top:15px">
+                <input type="number" id="goal-add-${g.id}" class="input" style="padding:8px; font-size:0.85rem" placeholder="Adicionar R$...">
+                <button class="btn btn-primary btn-sm" onclick="sumToGoal(${g.id})">Somar</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// Início
+render();
+</script>
+</body>
+</html>
